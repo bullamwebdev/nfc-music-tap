@@ -1,62 +1,61 @@
 # NFC Music Tap 🎵
 
-Tap an NFC tag at the bar → instant one-tap Spotify playback. Zero login. Zero friction.
+Tap an NFC tag → instant Spotify. Zero servers. Hosted on **GitHub Pages**.
 
 ## How it works
 
-1. Diffuser iPhone plays Spotify → Last.fm scrobbles live
-2. Guest taps NFC tag → phone opens this web page
-3. Page shows the **exact track** currently playing
-4. One green button → deep links directly into Spotify app
+1. Diffuser iPhone plays Spotify → scrobbles to Last.fm (`wise_song`)
+2. Guest taps NFC tag → opens this static page
+3. **Browser fetches Last.fm directly** (no backend needed)
+4. "▶ Play on Spotify" → `spotify://search/Title+Artist` opens Spotify app
 
-## Deploy to Vercel
+## Deploy to GitHub Pages
+
+### 1. Fork / push this repo
 
 ```bash
-npm i -g vercel
-vercel --prod
+git clone https://github.com/YOURNAME/nfc-music-tap.git
+cd nfc-music-tap
 ```
 
-## Environment Variables
+### 2. Enable GitHub Pages
 
-Set these in the Vercel dashboard (Project → Settings → Environment Variables):
+- Go to repo → **Settings** → **Pages**
+- Source: **Deploy from a branch**
+- Branch: `main` → `/ (root)`
+- Save → wait ~1 min → get URL: `https://YOURNAME.github.io/nfc-music-tap/`
 
-| Key | Value |
-|-----|-------|
-| `SPOTIFY_CLIENT_ID` | `7f512f8773424a50b32130185023690a` |
-| `SPOTIFY_CLIENT_SECRET` | `db10418a20fc4a798b28800e8966ab1b` |
-| `LASTFM_API_KEY` | `a97e01d1ca04ed66d629eed5117df482` |
-| `LASTFM_USERNAME` | `wise_song` |
+### 3. Write NFC Tag
 
-## Write NFC Tag
-
-1. Download **NFC Tools** (iOS / Android)
-2. Write an **NDEF URI record**
-3. URL: `https://YOUR-VERCEL-URL.vercel.app/tap`
-4. Tap the tag → instant now-playing page
-
-## Architecture
-
-- **Stateless** — no DB, every tap fetches fresh Last.fm data
-- **Cold-start < 1s** — single Vercel function, no bundler overhead
-- **No user auth** — Spotify Client Credentials + deep links only
-- **Zero client JS** — pure server-rendered HTML
+- **NFC Tools** app → NDEF URI record
+- URL: `https://YOURNAME.github.io/nfc-music-tap/` (or `/tap` if you rename the file)
 
 ## File Map
 
 ```
-index.js      → Express app, /tap route
-lastfm.js     → Fetch now playing from Last.fm
-spotify.js    → Client Credentials token manager
-template.js   → HTML card renderer
-vercel.json   → Vercel serverless config
-package.json  → deps (express, node-fetch)
+index.html   → Single static file, does everything
+README.md    → This file
 ```
 
-## Spotify App Requirements
+## No env vars needed
 
-- The diffuser iPhone must have Spotify connected to Last.fm account `wise_song`
-- Use [Last.fm Scrobbler app](https://www.last.fm/about/trackmymusic) or built-in Spotify scrobbling
-- **Scrobbling must be real-time** — Last.fm updates ~30s after track starts
+Last.fm API key is **public** (client-side safe). No Spotify secrets required — we use `spotify://search/` deep link instead of `spotify:track:URI`.
+
+## Trade-off vs server version
+
+| | GitHub Pages (this) | Vercel server |
+|---|---|---|
+| Hosting | Free forever | Free tier |
+| Server | None | Node.js function |
+| Spotify open | Search (1 tap away) | Direct track play |
+| Cold start | Instant | ~300ms |
+| Setup | 1 click | CLI + env vars |
+
+## Requirements
+
+- Diffuser iPhone: Spotify → Last.fm scrobbling enabled
+- Last.fm account: `wise_song` (or change in `index.html`)
+- Guest phone: Spotify app installed
 
 ## License
 
