@@ -20,7 +20,20 @@ body{
   padding:24px;
   text-align:center
 }
-.card{background:rgba(0,0,0,0.35);backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:40px 32px;box-shadow:0 8px 32px rgba(0,0,0,0.37);width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center}
+.card{
+  background:rgba(0,0,0,0.35);
+  backdrop-filter:blur(16px) saturate(180%);
+  -webkit-backdrop-filter:blur(16px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:20px;
+  padding:40px 32px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.37);
+  width:100%;
+  max-width:380px;
+  display:flex;
+  flex-direction:column;
+  align-items:center
+}
 .cover{width:240px;height:240px;border-radius:12px;object-fit:cover;box-shadow:0 20px 60px rgba(0,0,0,0.6);margin-bottom:32px;background:#111;opacity:0;transition:opacity .4s}
 .cover.loaded{opacity:1}
 .title{font-size:1.5rem;font-weight:700;margin-bottom:6px;line-height:1.2}
@@ -52,55 +65,42 @@ body{
 </div>
 
 <script>
-const LASTFM_API_KEY = 'a97e01d1ca04ed66d629eed5117df482';
-const LASTFM_USER = 'wise_song';
-
 async function load() {
   try {
-    const url = new URL('https://ws.audioscrobbler.com/2.0/');
-    url.searchParams.set('method','user.getrecenttracks');
-    url.searchParams.set('user',LASTFM_USER);
-    url.searchParams.set('limit','1');
-    url.searchParams.set('api_key',LASTFM_API_KEY);
-    url.searchParams.set('format','json');
-
-    const res = await fetch(url);
-    if(!res.ok) throw new Error('Last.fm error');
+    const res = await fetch('/api/tap');
     const data = await res.json();
-    const track = data?.recenttracks?.track?.[0];
 
-    if(!track) return showFallback();
+    if (!data.playing) return showFallback();
 
-    const isNowPlaying = track['@attr']?.nowplaying === 'true';
-    if(!isNowPlaying) return showFallback();
-
-    const title = track.name || 'Unknown';
-    const artist = track.artist?.['#text'] || 'Unknown';
-    const album = track.album?.['#text'] || '';
-    const image = track.image?.find(i => i.size === 'extralarge')?.['#text'] || '';
-
-    const searchQuery = encodeURIComponent(`${title} ${artist}`);
-    const spotifySearch = `spotify://search/${searchQuery}`;
-    const spotifyWeb = `https://open.spotify.com/search/${searchQuery}`;
-
-    document.getElementById('title').textContent = title;
-    document.getElementById('meta').textContent = album ? `${artist} · ${album}` : artist;
+    document.getElementById('title').textContent = data.title;
+    document.getElementById('meta').textContent = data.album ? `${data.artist} · ${data.album}` : data.artist;
 
     const cover = document.getElementById('cover');
-    if(image) { cover.src = image; cover.onload = () => cover.classList.add('loaded'); }
+    if (data.image) { cover.src = data.image; cover.onload = () => cover.classList.add('loaded'); }
     else { cover.style.display = 'none'; }
 
     const btn = document.getElementById('btn');
-    btn.href = spotifySearch;
-    btn.addEventListener('click', (e) => {
-      // Fallback: if spotify:// scheme fails, try web URL
-      window.location.href = spotifyWeb;
-    });
+    if (data.trackUri) {
+      btn.href = data.trackUri;
+      // Fallback: if deep link fails (Spotify not installed), open web URL after 1.5s
+      btn.addEventListener('click', () => {
+        setTimeout(() => {
+          if (document.visibilityState === 'visible' && data.trackUrl) {
+            window.location.href = data.trackUrl;
+          }
+        }, 1500);
+      });
+    } else if (data.trackUrl) {
+      btn.href = data.trackUrl;
+      btn.textContent = 'Open on Spotify';
+    } else {
+      btn.style.display = 'none';
+    }
 
     document.getElementById('loader').classList.add('hidden');
     document.getElementById('card').classList.remove('hidden');
 
-  } catch(err) {
+  } catch (err) {
     console.error(err);
     showFallback();
   }
